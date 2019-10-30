@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -51,18 +52,25 @@ func test(baseHTML io.Reader) {
 	log.Print(html)
 }
 
-func generate(baseHTML io.Reader) {
+func generate(baseHTML string) {
 	// TODO do I want log fatal here or just bubble up error?
 	// Build goquery document
-	doc, err := goquery.NewDocumentFromReader(baseHTML)
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(baseHTML))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var pages []page
+	maxLinks := 2
 
 	// Build selection of every link in base html and iterate over it
 	doc.Find("a").Each(func(i int, s *goquery.Selection) {
+		// Temporary hold because I can't conver the 7 MB files I'm making
+		if maxLinks <= 0 {
+			return
+		}
+		maxLinks--
+
 		// For each link...
 		// See if it exsists
 		link, ok := s.Attr("href")
@@ -74,8 +82,14 @@ func generate(baseHTML io.Reader) {
 		pages = append(pages, newPage)
 
 		// Set the link
-		s.SetAttr("href", newPage.id)
+		s.SetAttr("href", "#"+newPage.id)
 	})
+
+	baseHTML, err = goquery.OuterHtml(doc.First())
+	if err != nil {
+		// TODO handle better
+		log.Fatal(err)
+	}
 
 	// Channels to communicate
 	jobs := make(chan page, len(pages))
@@ -100,9 +114,23 @@ func generate(baseHTML io.Reader) {
 	}
 	sort.Sort(byPage(builtPages))
 
-	// Test
-	for _, x := range builtPages {
-		log.Println(x.id)
+	// Build all html into a single huge file to convert to pdf
+	log.Print("Concatenating HTML")
+
+	var sb strings.Builder
+	sb.Write([]byte(baseHTML))
+	for _, page := range builtPages {
+		// log.Print(i)
+		sb.WriteString(page.html)
+	}
+	masterHTML := sb.String()
+
+	log.Print("Done")
+
+	err = ioutil.WriteFile("out.html", []byte(masterHTML), 0664)
+	if err != nil {
+		log.Print("Failed to write to file")
+		log.Fatal(err)
 	}
 }
 
@@ -110,12 +138,15 @@ func getPageHTML(id int, jobs <-chan page, results chan<- page) {
 	// TODO maybe use chrome in the future for better SPA html rendering
 	for p := range jobs {
 		// Download HTML
-
+		log.Print("Fetching ", p.url)
 		resp, err := http.Get(p.url)
 		if err != nil {
-			// TODO handle properly
+			// TODO handle properly (this is a sucky way to deal with this)
 			log.Println("Failed to GET")
-			log.Fatal(err)
+			results <- page{id: p.id,
+				order: p.order,
+				url:   p.url,
+				html:  "<html><head></head><body>Failed</body></html>"}
 		}
 		defer resp.Body.Close()
 		htmlBytes, err := ioutil.ReadAll(resp.Body)
@@ -160,8 +191,10 @@ func getPageHTML(id int, jobs <-chan page, results chan<- page) {
 			log.Println("Failed to build doc")
 			log.Fatal(err)
 		}
-		root := doc.Find("html")
-		root.SetAttr("id", p.id)
+		root := doc.Find("body")
+		target := root.Prepend("a")
+		log.Print(root.Children().First().Html())
+		target.SetAttr("name", p.id)
 		p.html, err = goquery.OuterHtml(root)
 
 		// Place finished page into results channel

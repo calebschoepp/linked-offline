@@ -4,7 +4,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"strings"
 )
 
 func main() {
@@ -43,6 +42,7 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No stripped-html in email POST", http.StatusInternalServerError)
 	}
 
-	generate(strings.NewReader(htmlStrings[0]))
+	log.Println("POST received -- Generating PDF")
+	generate(htmlStrings[0])
 	w.WriteHeader(http.StatusCreated)
 }
