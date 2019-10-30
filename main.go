@@ -43,6 +43,6 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No stripped-html in email POST", http.StatusInternalServerError)
 	}
 
-	test(strings.NewReader(htmlStrings[0]))
+	generate(strings.NewReader(htmlStrings[0]))
 	w.WriteHeader(http.StatusCreated)
 }
