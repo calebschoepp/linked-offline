@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 )
 
 type page struct {
@@ -184,18 +186,25 @@ func getPageHTML(id int, jobs <-chan page, results chan<- page) {
 			}
 		*/
 
-		// Insert page.id as id on root of html document with goquery
+		// Insert page.id as name on link at root of document body with goquery
 		doc, err := goquery.NewDocumentFromReader(bytes.NewReader(htmlBytes))
 		if err != nil {
 			// TODO handle properly
 			log.Println("Failed to build doc")
 			log.Fatal(err)
 		}
-		root := doc.Find("body")
-		target := root.Prepend("a")
-		log.Print(root.Children().First().Html())
-		target.SetAttr("name", p.id)
-		p.html, err = goquery.OuterHtml(root)
+		node := new(html.Node)
+		node.Type = html.ElementNode
+		node.Data = "a"
+		node.DataAtom = atom.A
+		doc.AddNodes(node).SetAttr("name", p.id)
+		doc.Find("body").PrependNodes(node)
+		p.html, err = goquery.OuterHtml(doc.First())
+		if err != nil {
+			// TODO handle properly
+			log.Print("Failed to add target link node")
+			log.Fatal(err)
+		}
 
 		// Place finished page into results channel
 		results <- p
