@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/mafredri/cdp"
@@ -56,14 +60,15 @@ func getPageHTMLChrome(url string) ([]byte, error) {
 		return nil, err
 	}
 
+	// TODO REMOVE THIS
+	log.Print("Navigated to ", url)
+
 	// Create the Navigate arguments with the optional Referrer field set.
 	navArgs := page.NewNavigateArgs(url).SetReferrer("https://duckduckgo.com")
 	_, err = c.Page.Navigate(ctx, navArgs)
 	if err != nil {
 		return nil, err
 	}
-
-	log.Print("Navigated to ", url)
 
 	// Wait until we have a DOMContentEventFired event.
 	if _, err = domContent.Recv(); err != nil {
@@ -84,12 +89,28 @@ func getPageHTMLChrome(url string) ([]byte, error) {
 		return nil, err
 	}
 
+	// TODO REMOVE THIS TESTING STUFF
+	// Capture a screenshot of the current page.
+	screenshotName := strconv.Itoa(rand.Intn(3000)) + ".jpg"
+	screenshotArgs := page.NewCaptureScreenshotArgs().
+		SetFormat("jpeg").
+		SetQuality(80)
+	screenshot, err := c.Page.CaptureScreenshot(ctx, screenshotArgs)
+	if err != nil {
+		return nil, err
+	}
+	if err = ioutil.WriteFile(screenshotName, screenshot.Data, 0644); err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("Saved screenshot: %s\n", screenshotName)
+
 	return []byte(htmlReply.OuterHTML), nil
 }
 
 func buildPDFChrome(html []byte) ([]byte, error) {
 	// Constants and parameters
-	timeout := 120 * time.Second
+	timeout := 240 * time.Second
 	chromeURL := "http://127.0.0.1:9222"
 	bufSize := 100000000 // 100 MB
 

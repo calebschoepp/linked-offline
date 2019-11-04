@@ -36,12 +36,23 @@ func generate(baseHTML string) {
 		log.Fatal(err)
 	}
 
+	// TODO REMOVE THIS SECTION
+	do := false
+	if do {
+		doc.Find("body a").Each(func(i int, s *goquery.Selection) {
+			link, _ := s.Attr("href")
+			log.Print(link)
+		})
+		return
+	}
+	// END TEST SECTION TO REMOVE COMPLETELY
+
 	var linkPages []linkPage
-	maxLinks := 50
+	maxLinks := 5
 
 	// Build selection of every link in base html and iterate over it
-	doc.Find("a").Each(func(i int, s *goquery.Selection) {
-		// Temporary hold because I can't conver the 7 MB files I'm making
+	doc.Find("body a").Each(func(i int, s *goquery.Selection) {
+		// Temporary hold because I can't convert the 7 MB files I'm making
 		if maxLinks <= 0 {
 			return
 		}
@@ -52,7 +63,9 @@ func generate(baseHTML string) {
 		link, ok := s.Attr("href")
 		if !ok {
 			// TODO handle error intelligently
+			log.Fatal("The link did not exsist")
 		}
+		log.Print("Found link:", link)
 		newLinkPage := linkPage{order: i, url: link, id: linkToID(i, link)}
 
 		linkPages = append(linkPages, newLinkPage)
@@ -95,11 +108,14 @@ func generate(baseHTML string) {
 
 	var sb strings.Builder
 	sb.Write([]byte(baseHTML))
-	for _, linkPage := range builtLinkPages {
-		sb.WriteString(linkPage.html)
 
+	for i, linkPage := range builtLinkPages {
 		// TODO REMOVE
-		ioutil.WriteFile("htmlout/"+linkPage.url+".html", []byte(linkPage.html), 0664)
+		log.Print("Should be building html file for ", linkPage.url)
+		name := strconv.Itoa(i) + ".html"
+		ioutil.WriteFile(name, []byte(linkPage.html), 0664)
+
+		sb.WriteString(linkPage.html)
 	}
 	masterHTML := sb.String()
 
@@ -133,7 +149,7 @@ func worker(id int, jobs <-chan linkPage, results chan<- linkPage) {
 		htmlBytes, err := getPageHTMLChrome(p.url)
 		if err != nil {
 			// TODO handle properly (this is a sucky way to deal with this)
-			log.Println("Failed to GET")
+			log.Println(err.Error())
 			results <- linkPage{id: p.id,
 				order: p.order,
 				url:   p.url,
