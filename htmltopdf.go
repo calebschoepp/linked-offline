@@ -83,7 +83,8 @@ func generate(baseHTML string) {
 	// Channels to communicate
 	jobs := make(chan linkPage, len(linkPages))
 	results := make(chan linkPage, len(linkPages))
-	workerCount := len(linkPages)
+	// workerCount := len(linkPages)
+	workerCount := 1
 
 	// Spin up workers
 	for w := 0; w < workerCount; w++ {
