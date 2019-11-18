@@ -1,4 +1,6 @@
 const puppeteer = require("puppeteer");
+const devices = require("puppeteer/DeviceDescriptors");
+const pixel = devices["Pixel 2"];
 const fs = require("fs");
 
 if (process.argv.length != 3) {
@@ -15,7 +17,9 @@ const linkInfos = JSON.parse(fs.readFileSync(linksFilePath, "utf8"));
 (async () => {
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
+  await page.emulate(pixel);
 
+  console.log("Generating children PDFs...");
   for (let linkInfo of linkInfos) {
     if (
       fs.existsSync(linkInfo.id) ||

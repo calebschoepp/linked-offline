@@ -12,7 +12,7 @@ def add_link(pdf_writer, pg_from, pg_to, coords, pg_height, pg_width, draw_borde
     yur1 = pg_height - coords["y0"]
 
     xll2 = 0
-    yll2 = pg_height - 30
+    yll2 = pg_height - 50
     xur2 = pg_width
     yur2 = pg_height
 
@@ -53,13 +53,16 @@ def merge_pdfs(link_infos, output):
     for link_info in link_infos:
         if link_info["id"] in bad_children:
             continue
-        add_link(pdf_writer,
-            link_info["pgNum"],
-            link_info["pgTo"],
-            link_info["coords"],
-            parent_height,
-            parent_width,
-            True)
+        try:
+            add_link(pdf_writer,
+                link_info["pgNum"],
+                link_info["pgTo"],
+                link_info["coords"],
+                parent_height,
+                parent_width,
+                True)
+        except:
+            print("Failed to add a link for {}".format(link_info))
 
     # Write out the merged PDF
     with open(output, 'wb') as out:
