@@ -1,27 +1,28 @@
 "use strict";
 
 module.exports.parseEmail = async event => {
+  queryString = require("querystring");
   console.log(event);
-  let data = {};
-  try {
-    data = JSON.parse(event.body);
-  } catch (jsonError) {
-    console.log("There was an error parsing the body", jsonError);
-    return {
-      statusCode: 400
-    };
-  }
-
-  if (typeof data["stripped-html"] === "undefined") {
-    console.log("stripped-html was not parameter");
-    return {
-      statusCode: 400
-    };
-  }
-
-  console.log(data["stripped-html"]);
+  console.log(event.headers);
+  console.log(event.body);
+  console.log(typeof event.body);
+  console.log(typeof event.headers);
+  let body = new String(queryString.unescape(event.body));
+  console.log("Body");
+  console.log(body);
 
   return {
-    statusCode: 201
+    statusCode: 200,
+    body: "Hello"
   };
+  let strip = body.match(/(stripped-html)/).index - 1;
+  console.log("Strip");
+  console.log(strip);
+  let start = body.slice(strip).match(/(<html>)/).index;
+  console.log("start");
+  console.log(start);
+  let end = body.slice(strip).match(/(<\/html>)/).index + 7;
+  console.log("end");
+  console.log(end);
+  console.log(body.slice(start + strip, end + strip));
 };

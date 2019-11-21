@@ -60,6 +60,7 @@ provider:
 functions:
   parseEmail:
     handler: handler.parseEmail
+    memorySize: 512
     events:
       - http:
           path: email
