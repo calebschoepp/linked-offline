@@ -1,0 +1,17 @@
+{
+  "name": "linked-offline-serverless-backend",
+  "version": "1.0.0",
+  "description": "Serverless backend for linked offline project",
+  "main": "handler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Caleb Schoepp",
+  "license": "MIT",
+  "devDependencies": {
+    "serverless-offline": "5.12.0"
+  },
+  "dependencies": {
+    "cheerio": "1.0.0-rc.3"
+  }
+}
