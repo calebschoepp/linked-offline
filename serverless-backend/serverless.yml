@@ -23,6 +23,9 @@ org: calebschoepp
 provider:
   name: aws
   runtime: nodejs10.x
+  apiGateway:
+    binaryMediaTypes:
+      - "application/pdf"
 
 # you can overwrite defaults here
 #  stage: dev
@@ -65,6 +68,15 @@ functions:
       - http:
           path: email
           method: post
+
+  urlToPdf:
+    handler: handler.urlToPdf
+    memorySize: 1024
+    timeout: 15
+    events:
+      - http:
+          path: urltopdf
+          method: get
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details
