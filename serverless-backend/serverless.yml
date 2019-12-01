@@ -23,9 +23,19 @@ org: calebschoepp
 provider:
   name: aws
   runtime: nodejs10.x
+  region: us-west-2
+  stage: dev
   apiGateway:
     binaryMediaTypes:
       - "application/pdf"
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:ListBucket"
+        - "s3:GetObject"
+        - "s3:PutObject"
+      Resource: "arn:aws:s3:::url-pdfs/*"
 
 # you can overwrite defaults here
 #  stage: dev
@@ -118,12 +128,12 @@ functions:
 #      variable2: value2
 
 # you can add CloudFormation resource templates here
-#resources:
-#  Resources:
-#    NewResource:
-#      Type: AWS::S3::Bucket
-#      Properties:
-#        BucketName: my-new-bucket
+resources:
+ Resources:
+   urlPdfsBucket:
+     Type: AWS::S3::Bucket
+     Properties:
+       BucketName: url-pdfs #${self:service}-${self:provider.stage}-
 #  Outputs:
 #     NewOutput:
 #       Description: "Description for the output"

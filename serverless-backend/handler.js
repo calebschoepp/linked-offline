@@ -34,6 +34,11 @@ module.exports.parseEmail = async event => {
 module.exports.urlToPdf = async event => {
   const chromium = require("chrome-aws-lambda");
   const puppeteer = require("puppeteer-core");
+  const AWS = require("aws-sdk");
+  const S3 = new AWS.S3();
+
+  const bucket = "url-pdfs";
+  const OBJECTKEY = "test.pdf";
 
   const executablePath = event.isOffline
     ? "/home/caleb/linked-offline/test-pipeline/node_modules/puppeteer/.local-chromium/linux-706915/chrome-linux/chrome"
@@ -52,12 +57,24 @@ module.exports.urlToPdf = async event => {
 
   const pdfStream = await page.pdf();
 
-  return {
-    statusCode: 200,
-    isBase64Encoded: true,
-    headers: {
-      "Content-type": "application/pdf"
+  S3.putObject(
+    {
+      Body: pdfStream,
+      Bucket: bucket,
+      ContentType: "application/pdf",
+      Key: OBJECTKEY
     },
-    body: pdfStream.toString("base64")
-  };
+    (err, data) => {
+      if (err) {
+        return {
+          statusCode: 500,
+          body: "Failed to upload"
+        };
+      }
+      return {
+        statusCode: 200,
+        body: data
+      };
+    }
+  );
 };
