@@ -57,24 +57,25 @@ module.exports.urlToPdf = async event => {
 
   const pdfStream = await page.pdf();
 
-  S3.putObject(
-    {
+  console.log("Stream generated");
+
+  try {
+    const S3Reponse = await S3.putObject({
       Body: pdfStream,
       Bucket: bucket,
       ContentType: "application/pdf",
       Key: OBJECTKEY
-    },
-    (err, data) => {
-      if (err) {
-        return {
-          statusCode: 500,
-          body: "Failed to upload"
-        };
-      }
-      return {
-        statusCode: 200,
-        body: data
-      };
-    }
-  );
+    }).promise();
+    console.log(S3Reponse);
+    return {
+      statusCode: 200,
+      body: "Object successfully posted"
+    };
+  } catch (e) {
+    console.log(e);
+    return {
+      statusCode: 500,
+      body: "Error in posting object"
+    };
+  }
 };
