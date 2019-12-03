@@ -82,7 +82,7 @@ functions:
   urlToPdf:
     handler: handler.urlToPdf
     memorySize: 1024
-    timeout: 15
+    timeout: 60
     events:
       - http:
           path: urltopdf
