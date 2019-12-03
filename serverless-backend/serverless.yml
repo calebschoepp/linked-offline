@@ -62,6 +62,9 @@ provider:
 #    variable1: value1
 
 # you can add packaging information here
+package:
+  include:
+    - bin/*
 #package:
 #  include:
 #    - include-me.js

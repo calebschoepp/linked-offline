@@ -35,7 +35,10 @@ module.exports.urlToPdf = async event => {
   const chromium = require("chrome-aws-lambda");
   const puppeteer = require("puppeteer-core");
   const fs = require("fs");
+  const path = require("path");
   const crypto = require("crypto");
+  const util = require("util");
+  const exec = util.promisify(require("child_process").exec);
   const AWS = require("aws-sdk");
   const S3 = new AWS.S3();
 
@@ -48,6 +51,7 @@ module.exports.urlToPdf = async event => {
     .digest("hex");
   const filename = urlHash + ".pdf";
   const filepath = "/tmp/" + filename;
+  const compressedFilepath = filepath + ".comp";
 
   // Generate PDF stream
   const executablePath = event.isOffline
@@ -80,10 +84,29 @@ module.exports.urlToPdf = async event => {
   });
 
   // Optimize PDF file with Ghostscript
-  // TODO
+  console.log(process.env.IS_LOCAL);
+  let gsPath = process.env.IS_LOCAL
+    ? "/home/caleb/linked-offline/serverless-backend/bin/gs"
+    : process.env.LAMBDA_TASK_ROOT + "/bin/gs";
+  console.log(gsPath);
+  if (process.env.LAMBDA_TASK_ROOT) {
+    process.env.PATH = `${process.env.PATH}:${process.env.LAMBDA_TASK_ROOT}/bin`;
+  }
+  const args = [
+    gsPath,
+    "-sDEVICE=pdfwrite",
+    "-dPDFSETTINGS=/screen",
+    "-dCompatibilityLevel=1.4",
+    "-dNOPAUSE",
+    "-dQUIET",
+    "-dBATCH",
+    "-sOutputFile=" + compressedFilepath,
+    filepath
+  ];
+  await exec(args.join(" "));
 
   // Load PDF file into stream
-  const optimizedPdfStream = fs.readFileSync(filepath);
+  const optimizedPdfStream = fs.readFileSync(compressedFilepath);
 
   // Upload PDF to S3
   console.log("Uploading file to S3");
