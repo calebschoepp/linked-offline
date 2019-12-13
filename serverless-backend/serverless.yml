@@ -24,6 +24,7 @@ provider:
   name: aws
   region: us-west-2
   stage: dev
+  runtime: python3.6 # Specified here for python dependency plugin docker build
   apiGateway:
     binaryMediaTypes:
       - "application/pdf"
@@ -94,7 +95,7 @@ functions:
 
   pythonTest:
     handler: handler2.test
-    memorySize: 128
+    memorySize: 512
     runtime: python3.6
     events:
       - http:
@@ -153,3 +154,8 @@ resources:
 #       Value: "Some output value"
 plugins:
   - serverless-offline
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true

@@ -1,0 +1,4 @@
+PyMuPDF==1.16.7
+PyPDF4==1.27.0
+boto3==1.10.38
+botocore==1.13.38
