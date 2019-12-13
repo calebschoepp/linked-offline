@@ -22,7 +22,6 @@ org: calebschoepp
 
 provider:
   name: aws
-  runtime: nodejs10.x
   region: us-west-2
   stage: dev
   apiGateway:
@@ -77,6 +76,7 @@ functions:
   parseEmail:
     handler: handler.parseEmail
     memorySize: 512
+    runtime: nodejs10.x
     events:
       - http:
           path: email
@@ -85,10 +85,20 @@ functions:
   urlToPdf:
     handler: handler.urlToPdf
     memorySize: 1024
-    timeout: 60
+    runtime: nodejs10.x
+    timeout: 60 # Limited to 30 by API gateway
     events:
       - http:
           path: urltopdf
+          method: get
+
+  pythonTest:
+    handler: handler2.test
+    memorySize: 128
+    runtime: python3.6
+    events:
+      - http:
+          path: pythontest
           method: get
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events

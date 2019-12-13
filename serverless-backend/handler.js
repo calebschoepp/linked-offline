@@ -35,7 +35,6 @@ module.exports.urlToPdf = async event => {
   const chromium = require("chrome-aws-lambda");
   const puppeteer = require("puppeteer-core");
   const fs = require("fs");
-  const path = require("path");
   const crypto = require("crypto");
   const util = require("util");
   const exec = util.promisify(require("child_process").exec);
@@ -44,7 +43,7 @@ module.exports.urlToPdf = async event => {
 
   const bucket = "url-pdfs";
 
-  const url = "https://www.render.com";
+  const url = "https://dev.to";
   const urlHash = crypto
     .createHash("md5")
     .update(url)
