@@ -2,7 +2,7 @@ import PyPDF4
 import fitz
 import boto3
 
-def test(event, context):
+def handler(event, context):
     s3 = boto3.resource('s3')
     pdf = s3.Object('url-pdfs','01bb31b0cb2639e7fe73c1ee5b2a7696.pdf').get()
     pdf_content = pdf['Body'].read()

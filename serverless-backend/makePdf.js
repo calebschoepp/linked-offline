@@ -1,46 +1,15 @@
 "use strict";
 
-module.exports.parseEmail = async event => {
-  let body;
-  if (event.body) {
-    body = JSON.parse(event.body);
-  } else {
-    console.error("No body to parse");
-    return {
-      statusCode: 400,
-      body: "Event had no body"
-    };
-  }
+const chromium = require("chrome-aws-lambda");
+const puppeteer = require("puppeteer-core");
+const fs = require("fs");
+const crypto = require("crypto");
+const util = require("util");
+const exec = util.promisify(require("child_process").exec);
+const AWS = require("aws-sdk");
+const S3 = new AWS.S3();
 
-  if (!body.strippedHTML) {
-    return {
-      statusCode: 400,
-      body: "Body has no strippedHTML"
-    };
-  }
-  const cheerio = require("cheerio");
-  const $ = cheerio.load(body.strippedHTML);
-  let links = $("a");
-  $(links).each(function(i, link) {
-    console.log($(link).text() + ":\n  " + $(link).attr("href"));
-  });
-
-  return {
-    statusCode: 200,
-    body: "Well done Caleb"
-  };
-};
-
-module.exports.urlToPdf = async event => {
-  const chromium = require("chrome-aws-lambda");
-  const puppeteer = require("puppeteer-core");
-  const fs = require("fs");
-  const crypto = require("crypto");
-  const util = require("util");
-  const exec = util.promisify(require("child_process").exec);
-  const AWS = require("aws-sdk");
-  const S3 = new AWS.S3();
-
+module.exports.handler = async event => {
   const bucket = "url-pdfs";
 
   const url = "https://dev.to";

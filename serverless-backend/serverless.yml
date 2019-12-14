@@ -75,31 +75,32 @@ package:
 
 functions:
   parseEmail:
-    handler: handler.parseEmail
-    memorySize: 512
+    handler: parseEmail.handler
+    memorySize: 1024
     runtime: nodejs10.x
+    timeout: 20
     events:
       - http:
           path: email
           method: post
 
-  urlToPdf:
-    handler: handler.urlToPdf
+  makePdf:
+    handler: makePdf.handler
     memorySize: 1024
     runtime: nodejs10.x
     timeout: 60 # Limited to 30 by API gateway
     events:
       - http:
-          path: urltopdf
+          path: makePdf
           method: get
 
-  pythonTest:
-    handler: handler2.test
+  mergePdf:
+    handler: mergePdf.handler
     memorySize: 512
     runtime: python3.6
     events:
       - http:
-          path: pythontest
+          path: mergePdf
           method: get
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
