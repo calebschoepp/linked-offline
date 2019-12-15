@@ -36,6 +36,12 @@ provider:
         - "s3:GetObject"
         - "s3:PutObject"
       Resource: "arn:aws:s3:::url-pdfs/*"
+    - Effect: "Allow"
+      Action:
+        - "s3:ListBucket"
+        - "s3:GetObject"
+        - "s3:PutObject"
+      Resource: "arn:aws:s3:::html-pdfs/*"
 
 # you can overwrite defaults here
 #  stage: dev
@@ -84,14 +90,24 @@ functions:
           path: email
           method: post
 
-  makePdf:
-    handler: makePdf.handler
+  urlToPdf:
+    handler: urlToPdf.handler
     memorySize: 1024
     runtime: nodejs10.x
     timeout: 60 # Limited to 30 by API gateway
     events:
       - http:
-          path: makePdf
+          path: urlToPdf
+          method: get
+
+  htmlToPdf:
+    handler: htmlToPdf.handler
+    memorySize: 1024
+    runtime: nodejs10.x
+    timeout: 60 # Limited to 30 by API gateway
+    events:
+      - http:
+          path: htmlToPdf
           method: get
 
   mergePdf:
@@ -145,10 +161,14 @@ functions:
 # you can add CloudFormation resource templates here
 resources:
  Resources:
-   urlPdfsBucket:
-     Type: AWS::S3::Bucket
-     Properties:
-       BucketName: url-pdfs #${self:service}-${self:provider.stage}-
+    urlPdfsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: url-pdfs #${self:service}-${self:provider.stage}-
+    htmlPdfsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: html-pdfs #${self:service}-${self:provider.stage}-
 #  Outputs:
 #     NewOutput:
 #       Description: "Description for the output"
