@@ -9,7 +9,8 @@
   "author": "Caleb Schoepp",
   "license": "MIT",
   "devDependencies": {
-    "serverless-offline": "5.12.0"
+    "serverless-offline": "5.12.0",
+    "serverless-step-functions": "2.12.0"
   },
   "dependencies": {
     "aws-sdk": "2.580.0",

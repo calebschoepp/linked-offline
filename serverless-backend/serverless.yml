@@ -118,6 +118,32 @@ functions:
       - http:
           path: mergePdf
           method: get
+
+  # Testing step functions
+  SFparseEmail:
+    handler: sftest.parseEmail
+    memorySize: 128
+    runtime: nodejs10.x
+    timeout: 10
+
+  SFurlToPdf:
+    handler: sftest.urlToPdf
+    memorySize: 128
+    runtime: nodejs10.x
+    timeout: 10
+
+  SFhtmlToPdf:
+    handler: sftest.htmlToPdf
+    memorySize: 128
+    runtime: nodejs10.x
+    timeout: 10
+
+  SFmergePdf:
+    handler: sftest.mergePdf
+    memorySize: 128
+    runtime: nodejs10.x
+    timeout: 10
+
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details
@@ -176,7 +202,56 @@ resources:
 plugins:
   - serverless-offline
   - serverless-python-requirements
+  - serverless-step-functions
 
 custom:
   pythonRequirements:
     dockerizePip: true
+
+stepFunctions:
+  stateMachines:
+    stepFunctionTest:
+      events:
+        - http:
+            path: sftest
+            method: GET
+      name: stepFunctionTest
+      definition:
+        Comment: "Testing my state machine design"
+        StartAt: parseEmail
+        States:
+          parseEmail:
+            Type: Task
+            Next: makePdfs
+            Resource:
+              Fn::GetAtt: [SFparseEmail, Arn]
+          makePdfs:
+            Type: Parallel
+            Next: mergePdf
+            Branches:
+            - StartAt: urlsIntoPdfs
+              States:
+                urlsIntoPdfs:
+                  Type: Map
+                  End: true
+                  ItemsPath: $.urls
+                  Iterator:
+                    StartAt: urlToPdf
+                    States:
+                      urlToPdf:
+                        Type: Task
+                        Resource:
+                          Fn::GetAtt: [SFurlToPdf, Arn]
+                        End: true
+            - StartAt: htmlToPdf
+              States:
+                htmlToPdf:
+                  Type: Task
+                  End: true
+                  Resource:
+                    Fn::GetAtt: [SFhtmlToPdf, Arn]
+          mergePdf:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [SFmergePdf, Arn]
+            End: true
