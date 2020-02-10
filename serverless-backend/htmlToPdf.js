@@ -7,7 +7,7 @@ const S3bucket = "html-pdfs"; // TODO replace with environment vars
 module.exports.handler = async event => {
   // TODO -- Try/catch error handling
 
-  // Extract html from event
+  // Extract html from event TODO
   const html = "<div>Hello World!</div>";
 
   // Generate name for pdf from MD5 hash

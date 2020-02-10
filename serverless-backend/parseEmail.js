@@ -59,6 +59,8 @@ const parseEmail = async event => {
 
   console.log(links);
 
+  // TODO: return links for next function
+
   return {
     statusCode: 200,
     body: "Success"
