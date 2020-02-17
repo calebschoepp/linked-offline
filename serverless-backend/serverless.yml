@@ -42,6 +42,10 @@ provider:
         - "s3:GetObject"
         - "s3:PutObject"
       Resource: "arn:aws:s3:::html-pdfs/*"
+    - Effect: Allow
+      Action:
+        - states:StartExecution
+      Resource: "*" # TODO: Make this a more specific ARN
 
 # you can overwrite defaults here
 #  stage: dev
@@ -89,6 +93,8 @@ functions:
       - http:
           path: email
           method: post
+    # environment:
+    #   statemachine_arn: ${self:resources.Outputs.StateMachine.Value}
 
   urlToPdf:
     handler: urlToPdf.handler
@@ -184,21 +190,6 @@ functions:
 #    environment:
 #      variable2: value2
 
-# you can add CloudFormation resource templates here
-resources:
- Resources:
-    urlPdfsBucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: url-pdfs #${self:service}-${self:provider.stage}-
-    htmlPdfsBucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: html-pdfs #${self:service}-${self:provider.stage}-
-#  Outputs:
-#     NewOutput:
-#       Description: "Description for the output"
-#       Value: "Some output value"
 plugins:
   - serverless-offline
   - serverless-python-requirements
@@ -216,6 +207,7 @@ stepFunctions:
             path: sftest
             method: GET
       name: stepFunctionTest
+      id: stepFunctionTest
       definition:
         Comment: "Testing my state machine design"
         StartAt: parseEmail
@@ -255,3 +247,24 @@ stepFunctions:
             Resource:
               Fn::GetAtt: [SFmergePdf, Arn]
             End: true
+
+# you can add CloudFormation resource templates here
+resources:
+  Resources:
+    urlPdfsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: url-pdfs #${self:service}-${self:provider.stage}-
+    htmlPdfsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: html-pdfs #${self:service}-${self:provider.stage}-
+  # Outputs:
+  #   StateMachine:
+  #     Description: The ARN of the stepFunctionTest step function
+  #     Value:
+  #       Ref: stepFunctionTest
+#  Outputs:
+#     NewOutput:
+#       Description: "Description for the output"
+#       Value: "Some output value"

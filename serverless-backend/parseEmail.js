@@ -2,6 +2,7 @@
 
 const chromium = require("chrome-aws-lambda");
 const puppeteer = require("puppeteer-core");
+const aws = require("aws-sdk");
 
 const middy = require("middy");
 const {
@@ -57,14 +58,30 @@ const parseEmail = async event => {
     })
   );
 
-  console.log(links);
-
-  // TODO: return links for next function
-
-  return {
-    statusCode: 200,
-    body: "Success"
+  // TODO: add unique name to call to step function
+  const params = {
+    stateMachineArn: process.env.statemachine_arn,
+    input: JSON.stringify({ html, links })
   };
+
+  console.log(JSON.stringify({ html, links }));
+
+  const stepfunctions = new aws.StepFunctions();
+  stepfunctions.startExecution(params, function(err, data) {
+    if (err) {
+      console.log("err while executing step function");
+      return {
+        statusCode: 500,
+        body: "Process has failed to start"
+      };
+    } else {
+      console.log("started execution of step function");
+      return {
+        statusCode: 200,
+        body: "Process has started"
+      };
+    }
+  });
 };
 
 const handler = middy(parseEmail);
