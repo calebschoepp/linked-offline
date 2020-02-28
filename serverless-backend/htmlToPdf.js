@@ -8,7 +8,7 @@ module.exports.handler = async event => {
   // TODO -- Try/catch error handling
 
   // Extract html from event TODO
-  const html = "<div>Hello World!</div>";
+  const html = event.html;
 
   // Generate name for pdf from MD5 hash
   // TODO - generate name some other way
@@ -27,7 +27,7 @@ module.exports.handler = async event => {
   console.log(`Storing in ${S3bucket}`);
   await pdfGen.uploadPdf(optimizedPdfStream, name, S3bucket);
 
-  return "Success"; // TODO
+  return name; // TODO
 };
 
 // Creates a unique and consistent name for a file with a MD5 hash

@@ -60,7 +60,15 @@ const parseEmail = async event => {
 
   // TODO: add unique name to call to step function
   const params = {
-    stateMachineArn: process.env.statemachine_arn,
+    stateMachineArn:
+      "arn:aws:states:us-west-2:188580808264:stateMachine:stepFunctionTest",
+    name:
+      Math.random()
+        .toString(36)
+        .substring(2, 15) +
+      Math.random()
+        .toString(36)
+        .substring(2, 15),
     input: JSON.stringify({ html, links })
   };
 

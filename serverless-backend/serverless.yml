@@ -42,6 +42,12 @@ provider:
         - "s3:GetObject"
         - "s3:PutObject"
       Resource: "arn:aws:s3:::html-pdfs/*"
+    - Effect: "Allow"
+      Action:
+        - "s3:ListBucket"
+        - "s3:GetObject"
+        - "s3:PutObject"
+      Resource: "arn:aws:s3:::merged-pdfs/*"
     - Effect: Allow
       Action:
         - states:StartExecution
@@ -93,8 +99,6 @@ functions:
       - http:
           path: email
           method: post
-    # environment:
-    #   statemachine_arn: ${self:resources.Outputs.StateMachine.Value}
 
   urlToPdf:
     handler: urlToPdf.handler
@@ -210,38 +214,27 @@ stepFunctions:
       id: stepFunctionTest
       definition:
         Comment: "Testing my state machine design"
-        StartAt: parseEmail
+        StartAt: htmlToPdf
         States:
-          parseEmail:
+          htmlToPdf:
             Type: Task
-            Next: makePdfs
+            Next: urlsIntoPdfs
+            ResultPath: $.htmlPdfUri
             Resource:
-              Fn::GetAtt: [SFparseEmail, Arn]
-          makePdfs:
-            Type: Parallel
+              Fn::GetAtt: [htmlToPdf, Arn]
+          urlsIntoPdfs:
+            Type: Map
             Next: mergePdf
-            Branches:
-            - StartAt: urlsIntoPdfs
+            ItemsPath: $.links
+            ResultPath: $.urlPdfUris
+            Iterator:
+              StartAt: urlToPdf
               States:
-                urlsIntoPdfs:
-                  Type: Map
-                  End: true
-                  ItemsPath: $.urls
-                  Iterator:
-                    StartAt: urlToPdf
-                    States:
-                      urlToPdf:
-                        Type: Task
-                        Resource:
-                          Fn::GetAtt: [SFurlToPdf, Arn]
-                        End: true
-            - StartAt: htmlToPdf
-              States:
-                htmlToPdf:
+                urlToPdf:
                   Type: Task
-                  End: true
                   Resource:
-                    Fn::GetAtt: [SFhtmlToPdf, Arn]
+                    Fn::GetAtt: [urlToPdf, Arn]
+                  End: true
           mergePdf:
             Type: Task
             Resource:
@@ -259,11 +252,10 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: html-pdfs #${self:service}-${self:provider.stage}-
-  # Outputs:
-  #   StateMachine:
-  #     Description: The ARN of the stepFunctionTest step function
-  #     Value:
-  #       Ref: stepFunctionTest
+    mergedPdfsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: merged-pdfs #${self:service}-${self:provider.stage}-
 #  Outputs:
 #     NewOutput:
 #       Description: "Description for the output"

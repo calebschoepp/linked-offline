@@ -9,7 +9,7 @@ module.exports.handler = async event => {
   // TODO -- Try/catch error handling
 
   // Extract url from event and follow redirects to final url
-  const startUrl = "https://google.com"; // TODO
+  const startUrl = event.href;
   console.log(`Starting with ${startUrl}`);
   const url = await finalUrl(startUrl);
   console.log(`Redirected to ${url}`);
@@ -23,7 +23,7 @@ module.exports.handler = async event => {
   if (await pdfGen.pdfExsists(S3bucket, name)) {
     // Pdf already is in S3 so gracefully finish
     console.log(`${name} already in ${S3bucket}`);
-    return "Already in S3"; // TODO
+    return name;
   }
 
   // Pdf does not exsist in S3 so generate it with Puppeteer
@@ -38,7 +38,7 @@ module.exports.handler = async event => {
   console.log(`Storing in ${S3bucket}`);
   await pdfGen.uploadPdf(optimizedPdfStream, name, S3bucket);
 
-  return "Success"; // TODO
+  return name;
 };
 
 // Creates a unique and consistent name for a file with a MD5 hash

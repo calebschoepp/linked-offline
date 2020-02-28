@@ -3,14 +3,6 @@
 module.exports.parseEmail = async event => {
   console.log("parseEmail");
   console.log(event);
-  return {
-    html: "<div>Hello World!</div>",
-    urls: [
-      "https://www.npmjs.com/package/serverless-pseudo-parameters",
-      "https://docs.aws.amazon.com/step-functions/latest/dg/amazon-states-language-common-fields.html",
-      "https://www.npmjs.com/package/serverless-step-functions#simple-event-definition"
-    ]
-  };
 };
 
 module.exports.urlToPdf = async event => {
