@@ -1,6 +1,7 @@
 import PyPDF4
 import fitz
 import boto3
+from StringIO import StringIO
 
 def handler(event, context):
     # Extract links and S3 URI's for PDF's from step function input
@@ -9,11 +10,13 @@ def handler(event, context):
     url_pdf_uris = [x + '.pdf' for x in event['urlPdfUris']]
     links = event['links']
 
-    # Download the PDF's from S3 into buffer
+    # Prep S3 stuff
     s3_client = boto3.client('s3')
     html_bucket = "html-pdfs"
     url_bucket = "url-pdfs"
+    merged_bucket = "merged-pdfs"
 
+    # Download the PDF's from S3 into buffer
     print("Downloading HTML PDF")
     html_pdf_obj = s3_client.get_object(Bucket=html_bucket, Key=html_pdf_uri)
     html_pdf = html_pdf_obj['Body'].read()
@@ -50,16 +53,34 @@ def handler(event, context):
 
     # Add links to the PDF
     for link in links:
-        add_link(pdf_writer,
-                link_info["pgNum"],
-                link_info["pgTo"],
-                link_info["coords"],
-                parent_height,
-                parent_width,
-                True)
+        print("Should be adding a link here")
 
     # Save the PDF to S3
-    pass
+    tmp = StringIO()
+    pdf_writer.write(tmp)
+    s3_client.put_object(Bucket=merged_bucket, Key="1.pdf", Body=tmp.getvalue())
+
+
+def add_link(pdf_writer, pg_from, pg_to, coords, pg_height, pg_width, draw_border=False):
+    if draw_border:
+        border = [0, 0, 1]
+    else:
+        border = None
+    xll1 = coords["x0"]
+    yll1 = pg_height - coords["y1"]
+    xur1 = coords["x1"]
+    yur1 = pg_height - coords["y0"]
+
+    xll2 = 0
+    yll2 = pg_height - 50
+    xur2 = pg_width
+    yur2 = pg_height
+
+    # Add parent link
+    pdf_writer.addLink(pg_from, pg_to, [xll1, yll1, xur1, yur1], border)
+
+    # Add child back link
+    pdf_writer.addLink(pg_to, pg_from, [xll2, yll2, xur2, yur2], border)
 
 """
 

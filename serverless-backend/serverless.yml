@@ -238,7 +238,7 @@ stepFunctions:
           mergePdf:
             Type: Task
             Resource:
-              Fn::GetAtt: [SFmergePdf, Arn]
+              Fn::GetAtt: [mergePdf, Arn]
             End: true
 
 # you can add CloudFormation resource templates here

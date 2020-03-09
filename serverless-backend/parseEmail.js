@@ -75,21 +75,31 @@ const parseEmail = async event => {
   console.log(JSON.stringify({ html, links }));
 
   const stepfunctions = new aws.StepFunctions();
-  stepfunctions.startExecution(params, function(err, data) {
-    if (err) {
-      console.log("err while executing step function");
-      return {
-        statusCode: 500,
-        body: "Process has failed to start"
-      };
-    } else {
+  const stepFuncExecPromise = new Promise((resolve, reject) => {
+    stepfunctions.startExecution(params, function(err, data) {
+      if (err) {
+        reject(err);
+      }
+      resolve("Success");
+    });
+  });
+
+  return await stepFuncExecPromise.then(
+    reason => {
       console.log("started execution of step function");
       return {
         statusCode: 200,
-        body: "Process has started"
+        body: reason
+      };
+    },
+    reason => {
+      console.log("err while executing step function");
+      return {
+        statusCode: 500,
+        body: reason
       };
     }
-  });
+  );
 };
 
 const handler = middy(parseEmail);
