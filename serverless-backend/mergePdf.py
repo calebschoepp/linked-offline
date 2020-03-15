@@ -1,7 +1,6 @@
-import PyPDF4
+from PyPDF4 import PdfFileReader, PdfFileWriter
 import fitz
 import boto3
-from StringIO import StringIO
 
 def handler(event, context):
     # Extract links and S3 URI's for PDF's from step function input
@@ -16,23 +15,30 @@ def handler(event, context):
     url_bucket = "url-pdfs"
     merged_bucket = "merged-pdfs"
 
-    # Download the PDF's from S3 into buffer
+    # Download the PDF's from S3 into buffer then into file
+    # TODO remove write to file
     print("Downloading HTML PDF")
     html_pdf_obj = s3_client.get_object(Bucket=html_bucket, Key=html_pdf_uri)
-    html_pdf = html_pdf_obj['Body'].read()
+    html_pdf_bytes = html_pdf_obj['Body'].read()
+    with open("/tmp/html_pdf_file.pdf", 'w+b') as f_obj:
+        f_obj.write(html_pdf_bytes)
 
     print("Downloading URL PDFs")
     url_pdfs = []
-    for url_pdf_uri in url_pdf_uris:
+    for i, url_pdf_uri in enumerate(url_pdf_uris):
         url_pdf_obj = s3_client.get_object(Bucket=url_bucket, Key=url_pdf_uri)
-        url_pdfs.append(url_pdf_obj['Body'].read())
+        url_pdf_bytes = url_pdf_obj['Body'].read()
+        url_pdf_filename = f"/tmp/url_pdf_file_{i}.pdf"
+        url_pdfs.append(url_pdf_filename)
+        with open(url_pdf_filename, 'w+b') as f_obj:
+            f_obj.write(url_pdf_bytes)
     
     # Add the PDF's to the merger object
     pdf_writer = PdfFileWriter()
 
     # Starting with the html pdf
     print("Merging in HTML PDF")
-    pdf_reader = PdfFileReader(html_pdf)
+    pdf_reader = PdfFileReader("/tmp/html_pdf_file.pdf")
     height = pdf_reader.getPage(0).mediaBox[3]
     width = pdf_reader.getPage(0).mediaBox[2]
     page_count = pdf_reader.getNumPages()
@@ -50,16 +56,24 @@ def handler(event, context):
     pdf_writer.removeLinks()
 
     # Find root coordinates of where to place links
+    print("Finding link coordinates")
 
     # Add links to the PDF
+    print("Linking links")
     for link in links:
         print("Should be adding a link here")
 
     # Save the PDF to S3
-    tmp = StringIO()
-    pdf_writer.write(tmp)
-    s3_client.put_object(Bucket=merged_bucket, Key="1.pdf", Body=tmp.getvalue())
-
+    print("Saving merged pdf to S3")
+    with open("/tmp/merged-pdf.pdf", 'wb') as out:
+        pdf_writer.write(out)
+        print("--about to write to s3")
+        s3_client.put_object(Bucket=merged_bucket, Key="1.pdf", Body=out)
+        print("--done writing to s3")
+    return {
+        status: 201,
+        message: "created"
+    }
 
 def add_link(pdf_writer, pg_from, pg_to, coords, pg_height, pg_width, draw_border=False):
     if draw_border:
