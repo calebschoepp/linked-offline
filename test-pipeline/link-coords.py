@@ -40,3 +40,26 @@ if __name__ == "__main__":
 
         f_obj.seek(0)
         json.dump(link_infos, f_obj)
+
+
+def find_links(parent_pdf, links):
+    doc = fitz.open(parent_pdf)
+    
+    visited = set()
+    for link in links:
+        page_num = 0
+        for page in doc:
+            coords = page.searchFor(links['text'])
+            valid_coords = find_valid_coords(visited, coords)
+            if not valid_coords:
+                page_num += 1
+                continue
+
+            links["pg_num"] = page_num
+            link_info["coords"] = {
+                    "x0": round(valid_coords.x0),
+                    "y0": round(valid_coords.y0),
+                    "x1": round(valid_coords.x1),
+                    "y1": round(valid_coords.y1)
+                }
+            break

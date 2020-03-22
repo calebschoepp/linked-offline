@@ -2,6 +2,8 @@ from PyPDF4 import PdfFileReader, PdfFileWriter
 import fitz
 import boto3
 
+import hashlib
+
 def handler(event, context):
     # Extract links and S3 URI's for PDF's from step function input
     print("Extracting URIs")
@@ -9,7 +11,7 @@ def handler(event, context):
     url_pdf_uris = [x + '.pdf' for x in event['urlPdfUris']]
     links = event['links']
 
-    # Prep S3 stuff
+    # Prep S3 buckets and client
     s3_client = boto3.client('s3')
     html_bucket = "html-pdfs"
     url_bucket = "url-pdfs"
@@ -24,15 +26,25 @@ def handler(event, context):
         f_obj.write(html_pdf_bytes)
 
     print("Downloading URL PDFs")
-    url_pdfs = []
     for i, url_pdf_uri in enumerate(url_pdf_uris):
         url_pdf_obj = s3_client.get_object(Bucket=url_bucket, Key=url_pdf_uri)
         url_pdf_bytes = url_pdf_obj['Body'].read()
         url_pdf_filename = f"/tmp/url_pdf_file_{i}.pdf"
-        url_pdfs.append(url_pdf_filename)
+        add_to_links(links, {
+            'url_pdf_filename': url_pdf_filename,
+            'url_pdf_uri': url_pdf_uri
+        })
         with open(url_pdf_filename, 'w+b') as f_obj:
             f_obj.write(url_pdf_bytes)
+
+    print(links)
+
+    # Find root coordinates of where to place links
+    print("Finding link coordinates")
+    find_links("/tmp/html_pdf_file.pdf", links)
     
+    print(links)
+
     # Add the PDF's to the merger object
     pdf_writer = PdfFileWriter()
 
@@ -47,33 +59,56 @@ def handler(event, context):
 
     # Now add the url pdfs
     print("Merging in URL PDFs")
-    for url_pdf in url_pdfs:
-        pdf_reader = PdfFileReader(url_pdf)
-        # TODO track some form of "go to this page" information here
+    for link in links:
+        pdf_reader = PdfFileReader(link['url_pdf_filename'])
+        
+        link["pg_to"] = page_count
+        page_count += pdf_reader.getNumPages()
+
         for page in range(pdf_reader.getNumPages()):
             pdf_writer.addPage(pdf_reader.getPage(page))
 
     pdf_writer.removeLinks()
 
-    # Find root coordinates of where to place links
-    print("Finding link coordinates")
-
     # Add links to the PDF
     print("Linking links")
     for link in links:
-        print("Should be adding a link here")
+        try:
+            add_link(pdf_writer,
+                link["pg_num"],
+                link["pg_to"],
+                link["coords"],
+                height,
+                width,
+                True)
+        except:
+            print("Failed to add a link for {}".format(link))
 
-    # Save the PDF to S3
+    # Save the PDF to file
     print("Saving merged pdf to S3")
     with open("/tmp/merged-pdf.pdf", 'wb') as out:
         pdf_writer.write(out)
-        print("--about to write to s3")
-        s3_client.put_object(Bucket=merged_bucket, Key="1.pdf", Body=out)
-        print("--done writing to s3")
+    
+    # Upload the PDF to S3
+    with open("/tmp/merged-pdf.pdf", "rb") as pdf:
+        s3_client.put_object(Bucket=merged_bucket, Key="1.pdf", Body=pdf)
     return {
-        status: 201,
-        message: "created"
+        'status': 201,
+        'message': "created"
     }
+
+def add_to_links(links, url_pdf_obj):
+    for i, link in enumerate(links):
+        print(f"--i:{i} link:{link}")
+        if md5_hash(link['href']) == url_pdf_obj['url_pdf_uri']:
+            print(links)
+            links[i]['url_pdf_uri'] = url_pdf_obj['url_pdf_uri']
+            links[i]['url_pdf_filename'] = url_pdf_obj['url_pdf_filename']
+            print(links)
+            return
+
+def md5_hash(s):
+    return hashlib.md5(s.encode()).hexdigest()
 
 def add_link(pdf_writer, pg_from, pg_to, coords, pg_height, pg_width, draw_border=False):
     if draw_border:
@@ -96,6 +131,36 @@ def add_link(pdf_writer, pg_from, pg_to, coords, pg_height, pg_width, draw_borde
     # Add child back link
     pdf_writer.addLink(pg_to, pg_from, [xll2, yll2, xur2, yur2], border)
 
+def find_links(parent_pdf, links):
+    doc = fitz.open(parent_pdf)
+    
+    visited = set()
+    for link in links:
+        page_num = 0
+        for page in doc:
+            coords = page.searchFor(link['text'])
+            valid_coords = find_valid_coords(visited, coords)
+            if not valid_coords:
+                page_num += 1
+                continue
+
+            link["pg_num"] = page_num
+            link["coords"] = {
+                    "x0": round(valid_coords.x0),
+                    "y0": round(valid_coords.y0),
+                    "x1": round(valid_coords.x1),
+                    "y1": round(valid_coords.y1)
+                }
+            break
+
+def find_valid_coords(visited, coords):
+    if not coords:
+        return None
+    for coord in coords:
+        if not coord in visited:
+            visited.add(coord)
+            return coord
+    return None
 """
 
 Code verifying that I can use the fitz and pypdf libraries
