@@ -1,6 +1,7 @@
 from PyPDF4 import PdfFileReader, PdfFileWriter
 import fitz
 import boto3
+import ulid-py
 
 import hashlib
 
@@ -37,14 +38,10 @@ def handler(event, context):
         with open(url_pdf_filename, 'w+b') as f_obj:
             f_obj.write(url_pdf_bytes)
 
-    print(links)
-
     # Find root coordinates of where to place links
     print("Finding link coordinates")
     find_links("/tmp/html_pdf_file.pdf", links)
     
-    print(links)
-
     # Add the PDF's to the merger object
     pdf_writer = PdfFileWriter()
 
@@ -88,10 +85,13 @@ def handler(event, context):
     print("Saving merged pdf to S3")
     with open("/tmp/merged-pdf.pdf", 'wb') as out:
         pdf_writer.write(out)
+
+    # Generate ulid for merged PDF filename
+    merged_name = ulid.new().str + '.pdf'
     
     # Upload the PDF to S3
     with open("/tmp/merged-pdf.pdf", "rb") as pdf:
-        s3_client.put_object(Bucket=merged_bucket, Key="1.pdf", Body=pdf)
+        s3_client.put_object(Bucket=merged_bucket, Key=merged_name, Body=pdf)
     return {
         'status': 201,
         'message': "created"
@@ -99,12 +99,9 @@ def handler(event, context):
 
 def add_to_links(links, url_pdf_obj):
     for i, link in enumerate(links):
-        print(f"--i:{i} link:{link}")
-        if md5_hash(link['href']) == url_pdf_obj['url_pdf_uri']:
-            print(links)
+        if md5_hash(link['href']) == url_pdf_obj['url_pdf_uri'][0:-4]:
             links[i]['url_pdf_uri'] = url_pdf_obj['url_pdf_uri']
             links[i]['url_pdf_filename'] = url_pdf_obj['url_pdf_filename']
-            print(links)
             return
 
 def md5_hash(s):

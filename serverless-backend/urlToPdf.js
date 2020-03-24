@@ -8,14 +8,12 @@ const S3bucket = "url-pdfs"; // TODO replace with environment vars
 module.exports.handler = async event => {
   // TODO -- Try/catch error handling
 
-  // Extract url from event and follow redirects to final url
+  // Extract url from event
   const startUrl = event.href;
   console.log(`Starting with ${startUrl}`);
-  const url = await finalUrl(startUrl);
-  console.log(`Redirected to ${url}`);
 
   // Generate name for pdf from MD5 hash
-  const name = nameFromHash(url);
+  const name = nameFromHash(startUrl);
   console.log(`Using name ${name}`);
 
   // Check to see if pdf is already cached in S3
@@ -25,6 +23,12 @@ module.exports.handler = async event => {
     console.log(`${name} already in ${S3bucket}`);
     return name;
   }
+
+  // Follow redirects to final url
+  // Placed after check in cache because we don't want to perform
+  // unnecessary requests
+  const url = await finalUrl(startUrl);
+  console.log(`Redirected to ${url}`);
 
   // Pdf does not exsist in S3 so generate it with Puppeteer
   console.log("Generating pdf stream");
